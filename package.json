@@ -9,8 +9,22 @@
     "preview": "vite preview",
     "test": "vitest",
     "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "start": "vite preview --port $PORT",
+    "vercel-build": "vite build"
   },
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "builds": [
+    {
+      "src": "package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "dist"
+      }
+    }
+  ],
   "dependencies": {
     "date-fns": "^2.30.0",
     "date-fns-tz": "^2.0.0"
