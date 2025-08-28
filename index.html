@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Timezone Wizard - Find the Perfect Meeting Time</title>
+    <meta name="description" content="Find optimal meeting times across multiple timezones for global teams">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <div class="logo">
+                    <span class="logo-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/>
+                            <circle cx="12" cy="12" r="4" fill="currentColor" opacity="0.3"/>
+                            <line x1="12" y1="3" x2="12" y2="21" stroke="currentColor" stroke-width="1"/>
+                            <line x1="3" y1="12" x2="21" y2="12" stroke="currentColor" stroke-width="1"/>
+                            <path d="M8 8c2-2 6-2 8 0" stroke="currentColor" stroke-width="1" fill="none"/>
+                            <path d="M8 16c2 2 6 2 8 0" stroke="currentColor" stroke-width="1" fill="none"/>
+                        </svg>
+                    </span>
+                    <h1 class="logo-text">Timezone Wizard</h1>
+                    <span class="version-badge">v1.1</span>
+                </div>
+                <div class="header-subtitle">Find the perfect meeting time across timezones</div>
+                <div class="header-actions">
+                    <button class="icon-btn" id="settingsBtn" title="Settings">
+                        <span>⚙️</span>
+                    </button>
+                    <button class="icon-btn" id="helpBtn" title="Help">
+                        <span>ℹ️</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main">
+        <div class="container">
+            <!-- Hero Section (shown when no locations) -->
+            <section class="hero" id="heroSection">
+                <h2 class="hero-title">Welcome to Timezone Wizard</h2>
+                <p class="hero-description">Sync up to 6 locations, align working hours, and discover the perfect meeting time.</p>
+                <div class="hero-buttons">
+                    <button class="btn btn-primary btn-large" id="addFirstLocationBtn">
+                        <span class="btn-icon">+</span>
+                        Add First Location
+                    </button>
+                    <button class="btn btn-primary btn-large" id="tryDemoBtn">
+                        Try with New York, Tokyo, Hong Kong, Sydney, Vancouver, and Taipei
+                    </button>
+                </div>
+            </section>
+
+            <!-- Location Management -->
+            <section class="location-section" id="locationSection" style="display: none;">
+                <div class="section-header">
+                    <div class="location-counter">
+                        <span id="locationCount">0</span> of 6 locations added
+                    </div>
+                    <button class="btn btn-secondary" id="clearAllBtn">Clear All</button>
+                </div>
+
+                <!-- Location Cards Grid -->
+                <div class="location-grid" id="locationGrid">
+                    <!-- Location cards will be inserted here -->
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="action-buttons">
+                    <button class="btn btn-secondary" id="addLocationBtn">
+                        <span class="btn-icon">+</span>
+                        Add Another Location
+                    </button>
+                    <button class="btn btn-primary" id="generateTimesBtn" disabled>
+                        Generate Meeting Times
+                    </button>
+                </div>
+            </section>
+
+            <!-- Results Section -->
+            <section class="results-section" id="resultsSection" style="display: none;">
+                <div class="results-header">
+                    <h2 class="results-title">Recommended Meeting Times</h2>
+                    <div class="results-subtitle">
+                        Based on <span id="resultsLocationCount">0</span> locations
+                        <button class="icon-btn" id="refreshResultsBtn" title="Refresh">
+                            <span>🔄</span>
+                        </button>
+                    </div>
+                    <div class="duration-selector">
+                        <button class="duration-btn active" data-duration="30">30min</button>
+                        <button class="duration-btn" data-duration="60">1hr</button>
+                        <button class="duration-btn" data-duration="120">2hr</button>
+                    </div>
+                </div>
+
+                <!-- Results Display -->
+                <div class="results-display" id="resultsDisplay">
+                    <!-- Meeting time results will be inserted here -->
+                </div>
+
+                <div class="results-actions">
+                    <button class="btn btn-secondary" id="tryDifferentTimesBtn">
+                        Try Different Times
+                    </button>
+                </div>
+            </section>
+
+            <!-- Loading State -->
+            <div class="loading-overlay" id="loadingOverlay" style="display: none;">
+                <div class="loading-content">
+                    <div class="spinner"></div>
+                    <p class="loading-text">Analyzing timezones and finding optimal meeting times...</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Add Location Modal -->
+    <div class="modal-overlay" id="locationModal" style="display: none;">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title">Add Location</h3>
+                <button class="modal-close" id="closeModalBtn">×</button>
+            </div>
+            <div class="modal-body">
+                <form id="locationForm">
+                    <!-- City Input -->
+                    <div class="form-group">
+                        <label class="form-label" for="cityInput">City or Location</label>
+                        <div class="autocomplete-container">
+                            <input 
+                                type="text" 
+                                id="cityInput" 
+                                class="form-input" 
+                                placeholder="Start typing city name..."
+                                autocomplete="off"
+                            >
+                            <div class="autocomplete-dropdown" id="autocompleteDropdown"></div>
+                        </div>
+                    </div>
+
+                    <!-- Working Hours -->
+                    <div class="form-group">
+                        <label class="form-label">Working Hours</label>
+                        <div class="time-inputs">
+                            <div class="time-input-group">
+                                <label class="time-label">From:</label>
+                                <input type="time" id="startTime" class="time-input" value="09:00">
+                            </div>
+                            <div class="time-input-group">
+                                <label class="time-label">To:</label>
+                                <input type="time" id="endTime" class="time-input" value="17:00">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Available Days -->
+                    <div class="form-group">
+                        <label class="form-label">Available Days</label>
+                        <div class="days-selector">
+                            <button type="button" class="day-btn active" data-day="0">Mon</button>
+                            <button type="button" class="day-btn active" data-day="1">Tue</button>
+                            <button type="button" class="day-btn active" data-day="2">Wed</button>
+                            <button type="button" class="day-btn active" data-day="3">Thu</button>
+                            <button type="button" class="day-btn active" data-day="4">Fri</button>
+                            <button type="button" class="day-btn" data-day="5">Sat</button>
+                            <button type="button" class="day-btn" data-day="6">Sun</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" id="cancelModalBtn">Cancel</button>
+                <button type="submit" class="btn btn-primary" id="saveLocationBtn" form="locationForm" disabled>
+                    Save Location
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-text">
+                    Timezone Wizard: Because the world works better together.<br>
+                    Flora Hu © 2025
+                </div>
+                <div class="footer-links">
+                    <a href="#" class="footer-link">Privacy</a>
+                    <a href="#" class="footer-link">Terms</a>
+                    <a href="#" class="footer-link">GitHub</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="script-simple.js"></script>
+</body>
+</html>

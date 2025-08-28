@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test - Timezone Wizard</title>
+</head>
+<body>
+    <h1>JavaScript Test</h1>
+    <button id="testBtn">Click Me</button>
+    <div id="output"></div>
+
+    <script>
+        console.log('Script loaded');
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM ready');
+            
+            const btn = document.getElementById('testBtn');
+            const output = document.getElementById('output');
+            
+            if (btn) {
+                btn.addEventListener('click', function() {
+                    console.log('Button clicked!');
+                    output.innerHTML = 'Button works!';
+                });
+                console.log('Event listener added');
+            } else {
+                console.error('Button not found');
+            }
+        });
+    </script>
+</body>
+</html>
