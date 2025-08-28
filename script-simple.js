@@ -54,10 +54,12 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Add event listeners
     if (addFirstLocationBtn) {
-        addFirstLocationBtn.addEventListener('click', function() {
+        addFirstLocationBtn.addEventListener('click', function(e) {
+            e.preventDefault();
             console.log('Add first location clicked!');
             if (locationModal) {
                 locationModal.style.display = 'flex';
+                document.body.style.overflow = 'hidden'; // Prevent scrolling when modal is open
                 if (cityInput) {
                     cityInput.focus();
                     // Initial form validation when modal opens
@@ -78,11 +80,13 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Add Another Location button
     if (addLocationBtn) {
-        addLocationBtn.addEventListener('click', function() {
+        addLocationBtn.addEventListener('click', function(e) {
+            e.preventDefault();
             console.log('Add another location clicked!');
             currentEditIndex = -1; // Reset edit index
             if (locationModal) {
                 locationModal.style.display = 'flex';
+                document.body.style.overflow = 'hidden'; // Prevent scrolling when modal is open
                 resetForm();
                 if (cityInput) {
                     cityInput.focus();
@@ -311,6 +315,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function closeModal() {
         if (locationModal) {
             locationModal.style.display = 'none';
+            document.body.style.overflow = 'auto'; // Re-enable scrolling
         }
         resetForm();
         currentEditIndex = -1;
