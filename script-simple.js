@@ -26,10 +26,9 @@ const CITIES_DATABASE = [
 document.addEventListener('DOMContentLoaded', function() {
     console.log('DOM loaded, initializing app...');
     
-    updateUI();
-    
-    // Get elements
+    // Get all elements
     const addFirstLocationBtn = document.getElementById('addFirstLocationBtn');
+    const tryDemoBtn = document.getElementById('tryDemoBtn');
     const addLocationBtn = document.getElementById('addLocationBtn');
     const generateTimesBtn = document.getElementById('generateTimesBtn');
     const clearAllBtn = document.getElementById('clearAllBtn');
@@ -40,6 +39,32 @@ document.addEventListener('DOMContentLoaded', function() {
     const autocompleteDropdown = document.getElementById('autocompleteDropdown');
     const locationForm = document.getElementById('locationForm');
     const saveLocationBtn = document.getElementById('saveLocationBtn');
+    
+    // Add event listener for Add First Location button
+    if (addFirstLocationBtn) {
+        addFirstLocationBtn.addEventListener('click', function() {
+            console.log('Add first location clicked!');
+            currentEditIndex = -1; // Reset edit index
+            if (locationModal) {
+                locationModal.style.display = 'flex';
+                resetForm();
+                if (cityInput) {
+                    cityInput.focus();
+                    setTimeout(validateForm, 100);
+                }
+            }
+        });
+    }
+    
+    // Add event listener for Try Demo button
+    if (tryDemoBtn) {
+        tryDemoBtn.addEventListener('click', function() {
+            console.log('Try demo clicked!');
+            loadDemoLocations();
+        });
+    }
+    
+    updateUI();
     
     console.log('Elements found:', {
         addFirstLocationBtn: !!addFirstLocationBtn,
@@ -54,12 +79,10 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Add event listeners
     if (addFirstLocationBtn) {
-        addFirstLocationBtn.addEventListener('click', function(e) {
-            e.preventDefault();
+        addFirstLocationBtn.addEventListener('click', function() {
             console.log('Add first location clicked!');
             if (locationModal) {
                 locationModal.style.display = 'flex';
-                document.body.style.overflow = 'hidden'; // Prevent scrolling when modal is open
                 if (cityInput) {
                     cityInput.focus();
                     // Initial form validation when modal opens
@@ -80,13 +103,11 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Add Another Location button
     if (addLocationBtn) {
-        addLocationBtn.addEventListener('click', function(e) {
-            e.preventDefault();
+        addLocationBtn.addEventListener('click', function() {
             console.log('Add another location clicked!');
             currentEditIndex = -1; // Reset edit index
             if (locationModal) {
                 locationModal.style.display = 'flex';
-                document.body.style.overflow = 'hidden'; // Prevent scrolling when modal is open
                 resetForm();
                 if (cityInput) {
                     cityInput.focus();
@@ -315,7 +336,6 @@ document.addEventListener('DOMContentLoaded', function() {
     function closeModal() {
         if (locationModal) {
             locationModal.style.display = 'none';
-            document.body.style.overflow = 'auto'; // Re-enable scrolling
         }
         resetForm();
         currentEditIndex = -1;
