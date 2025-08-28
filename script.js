@@ -536,124 +536,216 @@ async function generateMeetingTimes() {
 }
 
 function calculateOptimalMeetingTimes() {
-    const today = new Date();
-    const tomorrow = new Date(today);
-    tomorrow.setDate(today.getDate() + 1);
-    const dayAfter = new Date(today);
-    dayAfter.setDate(today.getDate() + 2);
+    // Get next 7 days
+    function getNext7Days() {
+        const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+        const dates = [];
+        const today = new Date();
+        
+        for (let i = 0; i < 7; i++) {
+            const date = new Date(today);
+            date.setDate(today.getDate() + i);
+            dates.push({
+                date: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+                day: days[date.getDay()],
+                dayIndex: date.getDay()
+            });
+        }
+        return dates;
+    }
     
-    const dates = [today, tomorrow, dayAfter];
-    const meetingTimes = [];
+    // Calculate end time based on start time and duration
+    function calculateEndTime(startTime, duration) {
+        const [time, period] = startTime.split(' ');
+        let [hours, minutes] = time.split(':').map(Number);
+        
+        // Convert to 24-hour format
+        if (period === 'PM' && hours !== 12) hours += 12;
+        if (period === 'AM' && hours === 12) hours = 0;
+        
+        // Add duration
+        const startInMinutes = hours * 60 + minutes;
+        const endInMinutes = startInMinutes + duration;
+        
+        // Convert back to 12-hour format
+        let endHours = Math.floor(endInMinutes / 60) % 24;
+        const endMins = endInMinutes % 60;
+        const endPeriod = endHours >= 12 ? 'PM' : 'AM';
+        
+        endHours = endHours % 12;
+        if (endHours === 0) endHours = 12;
+        
+        return {
+            start: startTime,
+            end: `${endHours}:${endMins.toString().padStart(2, '0')} ${endPeriod}`
+        };
+    }
     
-    dates.forEach(date => {
-        // Generate time slots from 6 AM to 11 PM in 30-minute intervals
-        for (let hour = 6; hour < 23; hour++) {
-            for (let minute = 0; minute < 60; minute += 30) {
-                const baseTime = new Date(date);
-                baseTime.setHours(hour, minute, 0, 0);
-                
-                const timeSlot = {
-                    baseTime,
-                    locations: [],
-                    score: 0,
-                    date: date.toLocaleDateString('en-US', { month: 'short', day: '2-digit' })
-                };
-                
-                let totalScore = 0;
-                let validLocations = 0;
-                
-                locations.forEach(location => {
-                    try {
-                        // Create local time for the timezone
-                        const localTime = new Date(baseTime.getTime());
-                        const dayOfWeek = localTime.getDay();
-                        const adjustedDay = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // Convert to Mon=0, Sun=6
-                        
-                        if (!location.availableDays[adjustedDay]) {
-                            timeSlot.locations.push({
-                                name: location.name,
-                                time: localTime.toLocaleString('en-US', {
-                                    timeZone: location.timezone,
-                                    hour: 'numeric',
-                                    minute: '2-digit',
-                                    hour12: true
-                                }),
-                                available: false,
-                                score: 0
-                            });
-                            return;
-                        }
-                        
-                        const hours = localTime.getHours();
-                        const minutes = localTime.getMinutes();
-                        const timeInMinutes = hours * 60 + minutes;
-                        
-                        const [startHour, startMin] = location.workingHours.start.split(':').map(Number);
-                        const [endHour, endMin] = location.workingHours.end.split(':').map(Number);
-                        const startInMinutes = startHour * 60 + startMin;
-                        const endInMinutes = endHour * 60 + endMin;
-                        
-                        let locationScore = 0;
-                        let available = false;
-                        
-                        if (timeInMinutes >= startInMinutes && timeInMinutes + selectedDuration <= endInMinutes) {
-                            available = true;
-                            // Score based on how close to ideal business hours (10 AM - 4 PM)
-                            const idealStart = 10 * 60; // 10 AM
-                            const idealEnd = 16 * 60;   // 4 PM
-                            
-                            if (timeInMinutes >= idealStart && timeInMinutes <= idealEnd) {
-                                locationScore = 100;
-                            } else if (timeInMinutes >= startInMinutes && timeInMinutes <= endInMinutes) {
-                                const distanceFromIdeal = Math.min(
-                                    Math.abs(timeInMinutes - idealStart),
-                                    Math.abs(timeInMinutes - idealEnd)
-                                );
-                                locationScore = Math.max(50, 100 - (distanceFromIdeal / 60) * 10);
-                            }
-                        }
-                        
-                        timeSlot.locations.push({
-                            name: location.name,
-                            time: localTime.toLocaleString('en-US', {
-                                timeZone: location.timezone,
-                                hour: 'numeric',
-                                minute: '2-digit',
-                                hour12: true
-                            }),
-                            available,
-                            score: locationScore
-                        });
-                        
-                        if (available) {
-                            totalScore += locationScore;
-                            validLocations++;
-                        }
-                        
-                    } catch (error) {
-                        console.error(`Error processing location ${location.name}:`, error);
-                        timeSlot.locations.push({
-                            name: location.name,
-                            time: 'Error',
-                            available: false,
-                            score: 0
-                        });
-                    }
+    // Get traffic light indicator based on time and location
+    function getTrafficLight(time, location) {
+        const [startTime, period] = time.start.split(' ');
+        let [hours, minutes] = startTime.split(':').map(Number);
+        
+        // Convert to 24-hour format
+        if (period === 'PM' && hours !== 12) hours += 12;
+        if (period === 'AM' && hours === 12) hours = 0;
+        
+        const timeInMinutes = hours * 60 + minutes;
+        const [workStart, workEnd] = location.workingHours.split(' - ');
+        
+        let [workStartTime, workStartPeriod] = workStart.split(' ');
+        let [workEndTime, workEndPeriod] = workEnd.split(' ');
+        
+        let [workStartHours, workStartMins] = workStartTime.split(':').map(Number);
+        let [workEndHours, workEndMins] = workEndTime.split(':').map(Number);
+        
+        // Convert work hours to 24-hour format
+        if (workStartPeriod === 'PM' && workStartHours !== 12) workStartHours += 12;
+        if (workStartPeriod === 'AM' && workStartHours === 12) workStartHours = 0;
+        if (workEndPeriod === 'PM' && workEndHours !== 12) workEndHours += 12;
+        if (workEndPeriod === 'AM' && workEndHours === 12) workEndHours = 0;
+        
+        const workStartInMinutes = workStartHours * 60 + workStartMins;
+        const workEndInMinutes = workEndHours * 60 + workEndMins;
+        
+        // Check if time is within working hours
+        if (timeInMinutes >= workStartInMinutes && timeInMinutes <= workEndInMinutes) {
+            // Check if it's within the first or last hour of work
+            if (timeInMinutes <= workStartInMinutes + 60 || timeInMinutes >= workEndInMinutes - 60) {
+                return '🟡'; // Yellow for first or last hour
+            }
+            return '🟢'; // Green for core working hours
+        }
+        return '🔴'; // Red for outside working hours
+    }
+    
+    // Calculate weighted score for a meeting time across all locations
+    function calculateWeightedScore(locationTimes, locations) {
+        let greenCount = 0;
+        let yellowCount = 0;
+        let redCount = 0;
+        
+        locations.forEach((location, index) => {
+            const meetingTime = locationTimes[index];
+            const trafficLight = getTrafficLight(meetingTime, location);
+            if (trafficLight === '🟢') greenCount++;
+            else if (trafficLight === '🟡') yellowCount++;
+            else if (trafficLight === '🔴') redCount++;
+        });
+        
+        const totalLocations = locations.length;
+        
+        // Calculate base score (0-100)
+        let score = 0;
+        
+        if (redCount === 0) {
+            // No reds: high scores for green/yellow combinations
+            if (greenCount === totalLocations) {
+                score = 100; // All greens = perfect
+            } else {
+                // Mix of greens and yellows
+                const greenRatio = greenCount / totalLocations;
+                const yellowRatio = yellowCount / totalLocations;
+                score = Math.round(greenRatio * 100 + yellowRatio * 50);
+            }
+        } else {
+            // Has reds: significantly lower scores
+            const redRatio = redCount / totalLocations;
+            const greenRatio = greenCount / totalLocations;
+            const yellowRatio = yellowCount / totalLocations;
+            
+            // Base score from greens/yellows, then apply red penalty
+            const baseScore = greenRatio * 60 + yellowRatio * 30;
+            const redPenalty = redRatio * 50; // Heavy penalty for reds
+            score = Math.max(0, Math.round(baseScore - redPenalty));
+        }
+        
+        return Math.min(100, Math.max(0, score)); // Ensure 0-100 range
+    }
+    
+    // Convert time to different timezone
+    function convertTimeToTimezone(timeStr, fromTimezone, toTimezone) {
+        try {
+            const [time, period] = timeStr.split(' ');
+            const [hours, minutes] = time.split(':').map(Number);
+            
+            // Create a date object for today with the given time
+            const today = new Date();
+            let hour24 = hours;
+            if (period === 'PM' && hours !== 12) hour24 += 12;
+            if (period === 'AM' && hours === 12) hour24 = 0;
+            
+            // Set the time in the from timezone
+            const baseDate = new Date();
+            baseDate.setHours(hour24, minutes, 0, 0);
+            
+            // Convert to target timezone
+            const convertedTime = new Date(baseDate.toLocaleString("en-US", {timeZone: toTimezone}));
+            
+            // Format back to 12-hour format
+            return convertedTime.toLocaleString('en-US', {
+                hour: 'numeric',
+                minute: '2-digit',
+                hour12: true
+            });
+        } catch (error) {
+            return timeStr; // Fallback to original time
+        }
+    }
+    
+    // Generate meeting slots for next 7 days
+    function generateMeetingSlots() {
+        const days = getNext7Days();
+        const slots = [];
+        const timeSlots = ['9:00 AM', '10:00 AM', '11:00 AM', '1:00 PM', '2:00 PM', '3:00 PM', '4:00 PM', '5:00 PM'];
+        const baseTimezone = 'UTC'; // Use UTC as base reference
+        
+        days.forEach(day => {
+            // Check if all locations are available on this day
+            const allAvailable = locations.every(loc => loc.availableDays[day.dayIndex === 0 ? 6 : day.dayIndex - 1]);
+            
+            if (allAvailable) {
+                timeSlots.forEach(startTime => {
+                    // Convert the base time to each location's timezone
+                    const locationTimes = locations.map(location => {
+                        const localStartTime = convertTimeToTimezone(startTime, baseTimezone, location.timezone);
+                        return calculateEndTime(localStartTime, selectedDuration);
+                    });
+                    
+                    // Calculate score based on all location times
+                    const score = calculateWeightedScore(locationTimes, locations);
+                    
+                    slots.push({
+                        date: day.date,
+                        day: day.day,
+                        times: locationTimes,
+                        score: score
+                    });
                 });
-                
-                // Only include time slots where all locations are available
-                if (validLocations === locations.length) {
-                    timeSlot.score = Math.round(totalScore / locations.length);
-                    meetingTimes.push(timeSlot);
-                }
             }
         });
-    });
+        
+        // Sort by score (highest first)
+        return slots.sort((a, b) => b.score - a.score).slice(0, 10); // Top 10 slots
+    }
     
-    // Sort by score (highest first) and return top 10
-    return meetingTimes
-        .sort((a, b) => b.score - a.score)
-        .slice(0, 10);
+    const meetingSlots = generateMeetingSlots();
+    
+    // Store meeting slots globally for export functions
+    window.currentMeetingSlots = meetingSlots;
+    
+    // Convert to the format expected by the rest of the application
+    return meetingSlots.map(slot => ({
+        date: slot.date,
+        day: slot.day,
+        score: slot.score,
+        locations: slot.times.map((time, index) => ({
+            name: locations[index].name,
+            time: time.start,
+            available: true,
+            score: 100 // Default score
+        }))
+    }));
 }
 
 function displayResults(meetingTimes) {
